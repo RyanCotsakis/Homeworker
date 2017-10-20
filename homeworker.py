@@ -18,10 +18,11 @@ COMPLETEDHEADER = "COMPLETED TASKS:"
 CLEAR_COMMAND = "cls"
 
 def listener():
+	time.sleep(WAIT)
 	while True:
 		command = raw_input("\n>> ").strip()
 		commands.append(command)
-		if command in "exit" and command[0] == "e":
+		if len(command) and command in "exit" and command[0] == "e":
 			listenerDied = True
 			return
 		time.sleep(WAIT)
@@ -56,21 +57,20 @@ def main():
 	print "clear\t\t-clear the output screen"
 	print "continue\t-continue a completed task"
 	print "current\t\t-display unfinished tasks"
-	print "done\t\t-logs the current task as complete"
+	print "done\t\t-log the current task as complete"
+	print "delete\t\t-delete an unfinished task"
 	print "exit\t\t-close program"
 	print "log\t\t-view the log of completed tasks"
 	print "switch\t\t-switch to a different task"
 
-	print "\nThe (#:##) after each task corresponds to the amount\nof time it has been actively worked on."
-	print "\nYour current tasks are:"
-	print '\n'.join(currentTasks)
+	print "\nThe time after each task corresponds to the amount\nof time it has been actively worked on.\n"
+	commands.append('current')
 
 	p = threading.Thread(target = listener)
 	p.start()
 	cycleCount = 0
 	while True:
 		cycleCount += 1
-		sys.stdout.flush()
 
 		if listenerDied:
 			data = update(f)
@@ -98,7 +98,11 @@ def main():
 		if len(commands):
 			command = commands[0]
 			del commands[0]
-			if command in "log" and command[0] == "l":
+
+			if not len(command):
+				pass
+
+			elif command in "log" and command[0] == "l":
 				print '\n'.join(data)
 
 			elif command in "exit" and command[0] == "e":
@@ -111,17 +115,23 @@ def main():
 				while not len(commands):
 					time.sleep(DELAY)
 					sys.stdout.flush()
-				newLine = commands[0] + "\t0:00"
-				del commands[0]
-				currentTasks.append(newLine)
-				data = update(f)
-				print "Task added!"
+				if len(commands[0]):
+					newLine = commands[0] + "\t0:00"
+					del commands[0]
+					currentTasks.append(newLine)
+					data = update(f)
+					print "Task added!"
+				else:
+					print "Task name must not be empty."
 
 			elif command in "current" and command[:2] == "cu":
-				print "Your current tasks are:"
-				print '\n'.join(currentTasks)
+				if len(currentTasks):
+					print "Your current tasks are:"
+					print '\n'.join(currentTasks)
+				else:
+					print "You're all done!"
 
-			elif command in "done" and command[0] == "d":
+			elif command in "done" and command[:2] == "do":
 				try:
 					finishedTask = currentTasks[0]
 					del currentTasks[0]
@@ -131,11 +141,31 @@ def main():
 				except IndexError:
 					print "Done what?"
 
+			elif command in "delete" and command[:2] == "de":
+				itemNum = 1
+				for item in currentTasks:
+					print str(itemNum) + ": " + item
+					itemNum += 1
+				print "\nType the number corresponding to the task you'd like\nto delete:"
+				sys.stdout.flush()
+				while not len(commands):
+					time.sleep(DELAY)
+					sys.stdout.flush()
+				try:
+					itemNum = int(commands[0])-1
+					del currentTasks[itemNum]
+					data = update(f)
+					print "Task Deleted."
+					del commands[0]
+				except (ValueError, IndexError):
+					print "Could not delete task '" + commands[0] + "'"
+
+
 			elif command in "clear" and command[:2] == "cl":
 				os.system(CLEAR_COMMAND)
 
 			elif command in "switch" and command[0] == "s":
-				itemNum = 0
+				itemNum = 1
 				for item in currentTasks:
 					print str(itemNum) + ": " + item
 					itemNum += 1
@@ -145,18 +175,18 @@ def main():
 					time.sleep(DELAY)
 					sys.stdout.flush()
 				try:
-					itemNum = int(commands[0])
+					itemNum = int(commands[0])-1
 					currentTask = currentTasks[itemNum]
 					del currentTasks[itemNum]
 					currentTasks.insert(0,currentTask)
 					data = update(f)
-					print "Successfully switched to task " + str(itemNum)
+					print "Successfully switched to task " + str(itemNum+1) + "."
 					del commands[0]
 				except (ValueError, IndexError):
 					print "Could not switch to task '" + commands[0] + "'"
 
 			elif command in "continue" and command[:2] == "co":
-				itemNum = 0
+				itemNum = 1
 				for item in completedTasks:
 					print str(itemNum) + ": " + item
 					itemNum += 1
@@ -166,19 +196,20 @@ def main():
 					time.sleep(DELAY)
 					sys.stdout.flush()
 				try:
-					itemNum = int(commands[0])
+					itemNum = int(commands[0])-1
 					currentTask = completedTasks[itemNum]
 					del completedTasks[itemNum]
 					currentTasks.insert(0,currentTask)
 					data = update(f)
-					print "Successfully switched to task " + str(itemNum)
+					print "Successfully switched to task " + str(itemNum+1) + "."
 					del commands[0]
 				except (ValueError, IndexError):
-					print "Could not switch to task '" + commands[0] + "'"
+					print "Could not continue task '" + commands[0] + "'."
 
 			else:
-				print "Invalid command, " + command
+				print "Invalid command, '" + command + "'."
 
+		sys.stdout.flush()
 		time.sleep(DELAY)
 		# End of while(True)
 
