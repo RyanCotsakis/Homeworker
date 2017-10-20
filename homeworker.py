@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import threading
+from datetime import date
 
 listenerDied = False
 commands = []
@@ -60,7 +61,7 @@ def main():
 	print "log\t\t-view the log of completed tasks"
 	print "switch\t\t-switch to a different task"
 
-	print "\nThe number after each task corresponds to the number\nof minutes it has been actively worked on"
+	print "\nThe (#:##) after each task corresponds to the amount\nof time it has been actively worked on."
 	print "\nYour current tasks are:"
 	print '\n'.join(currentTasks)
 
@@ -77,9 +78,20 @@ def main():
 
 		if not cycleCount % (60/DELAY):
 			if len(currentTasks):
-				currentTask = currentTasks[0].split('\t')
-				currentTaskDuration = int(currentTask[1])
-				currentTasks[0] = currentTask[0] + '\t' + str(currentTaskDuration+1)
+				try:
+					currentTask = currentTasks[0].split('\t')
+					terms = len(currentTask)
+					currentTaskHM = currentTask[terms-1].split(':')
+					currentTaskM = int(currentTaskHM[1])
+					currentTaskH = int(currentTaskHM[0])
+					if currentTaskM < 59:
+						currentTaskM += 1
+					else:
+						currentTaskM = 0
+						currentTaskH += 1
+					currentTasks[0] = '\t'.join(currentTask[:terms-1]) + '\t' + str(currentTaskH) + ':' + str(currentTaskM).zfill(2)
+				except (ValueError, IndexError):
+					pass
 			data = update(f)
 
 
@@ -99,7 +111,7 @@ def main():
 				while not len(commands):
 					time.sleep(DELAY)
 					sys.stdout.flush()
-				newLine = commands[0] + "\t0"
+				newLine = commands[0] + "\t0:00"
 				del commands[0]
 				currentTasks.append(newLine)
 				data = update(f)
@@ -113,7 +125,7 @@ def main():
 				try:
 					finishedTask = currentTasks[0]
 					del currentTasks[0]
-					completedTasks.append(finishedTask)
+					completedTasks.append(date.today().strftime('%d.%m.%Y - ') + finishedTask)
 					data = update(f)
 					print "Well done!"
 				except IndexError:
