@@ -1,5 +1,6 @@
 """ homeworker - Ryan Cotsakis """
 
+import win32gui, win32con
 import os
 import sys
 import time
@@ -7,6 +8,7 @@ import threading
 from datetime import date
 
 listenerDied = False
+paused = [False]
 commands = []
 currentTasks = []
 completedTasks = []
@@ -20,7 +22,10 @@ CLEAR_COMMAND = "cls"
 def listener():
 	time.sleep(WAIT)
 	while True:
-		command = raw_input("\n>> ").strip()
+		if not paused[0]:
+			command = raw_input("\n>> ").strip()
+		else:
+			command = raw_input("\nPAUSED >> ").strip()
 		commands.append(command)
 		if len(command) and command in "exit" and command[0] == "e":
 			listenerDied = True
@@ -61,6 +66,8 @@ def main():
 	print "delete\t\t-delete an unfinished task"
 	print "exit\t\t-close program"
 	print "log\t\t-view the log of completed tasks"
+	print "minimize\t-minimize homeworker"
+	print "(un)pause\t-stop/start adding time to current task"
 	print "switch\t\t-switch to a different task"
 
 	print "\nThe time after each task corresponds to the amount\nof time it has been actively worked on.\n"
@@ -70,7 +77,8 @@ def main():
 	p.start()
 	cycleCount = 0
 	while True:
-		cycleCount += 1
+		if not paused[0]:
+			cycleCount += 1
 
 		if listenerDied:
 			data = update(f)
@@ -108,6 +116,13 @@ def main():
 			elif command in "exit" and command[0] == "e":
 				data = update(f)
 				break
+
+			elif command in "minimize" and command[0] == "m" and not command in "mize":
+				Minimize = win32gui.GetForegroundWindow()
+				win32gui.ShowWindow(Minimize, win32con.SW_MINIMIZE)
+
+			elif command in "unpaused" and (command[0] == "p" or command[0] == "u"):
+				paused[0] = not paused[0]
 
 			elif command in "add" and command[0] == "a":
 				print "Enter New Line:"
