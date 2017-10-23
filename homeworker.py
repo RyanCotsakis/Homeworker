@@ -117,7 +117,7 @@ def main():
 				data = update(f)
 				break
 
-			elif command in "minimize" and command[0] == "m" and not command in "mize":
+			elif command in "minimize" and command[0] == "m" and not command[:3] == "miz":
 				Minimize = win32gui.GetForegroundWindow()
 				win32gui.ShowWindow(Minimize, win32con.SW_MINIMIZE)
 
