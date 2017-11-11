@@ -7,8 +7,7 @@ import time
 import threading
 from datetime import date
 
-listenerDied = False
-paused = [False]
+paused = False
 commands = []
 currentTasks = []
 completedTasks = []
@@ -18,17 +17,17 @@ WAIT = 0.2 #seconds for >>
 CURRENTHEADER = "CURRENT TASKS:"
 COMPLETEDHEADER = "COMPLETED TASKS:"
 CLEAR_COMMAND = "cls"
+OPEN_COMMAND = "start notepad log.txt"
 
 def listener():
 	time.sleep(WAIT)
 	while True:
-		if not paused[0]:
+		if not paused:
 			command = raw_input("\n>> ").strip()
 		else:
 			command = raw_input("\nPAUSED >> ").strip()
 		commands.append(command)
-		if len(command) and command in "exit" and command[0] == "e":
-			listenerDied = True
+		if len(command) and ((command in "exit" and command[0] == "e") or (command in "open" and command[0] == "o")):
 			return
 		time.sleep(WAIT)
 
@@ -40,6 +39,7 @@ def update(file):
 	return data
 
 def main():
+	global paused
 	try:
 		f = open("./log.txt",mode = "r+")
 		data = f.read().splitlines()
@@ -57,32 +57,15 @@ def main():
 			completedTasks.append(item)
 
 
-	print "\nCOMMAND LIST:"
-	print "add\t\t-add a task"
-	print "clear\t\t-clear the output screen"
-	print "continue\t-continue a completed task"
-	print "current\t\t-display unfinished tasks"
-	print "done\t\t-log the current task as complete"
-	print "delete\t\t-delete an unfinished task"
-	print "exit\t\t-close program"
-	print "log\t\t-view the log of completed tasks"
-	print "minimize\t-minimize homeworker"
-	print "(un)pause\t-stop/start adding time to current task"
-	print "switch\t\t-switch to a different task"
-
-	print "\nThe time after each task corresponds to the amount\nof time it has been actively worked on.\n"
+	commands.append('info')
 	commands.append('current')
 
 	p = threading.Thread(target = listener)
 	p.start()
 	cycleCount = 0
 	while True:
-		if not paused[0]:
+		if not paused:
 			cycleCount += 1
-
-		if listenerDied:
-			data = update(f)
-			break
 
 		if not cycleCount % (60/DELAY):
 			if len(currentTasks):
@@ -122,7 +105,24 @@ def main():
 				win32gui.ShowWindow(Minimize, win32con.SW_MINIMIZE)
 
 			elif command in "unpaused" and (command[0] == "p" or command[0] == "u"):
-				paused[0] = not paused[0]
+				paused = not paused
+
+			elif command in "info" and command[0] == "i":
+				print "\nCOMMAND LIST:"
+				print "add\t\t-add a task"
+				print "clear\t\t-clear the output screen"
+				print "continue\t-continue a completed task"
+				print "current\t\t-display unfinished tasks"
+				print "done\t\t-log the current task as complete"
+				print "delete\t\t-delete an unfinished task"
+				print "exit\t\t-close program"
+				print "info\t\t-repeat these instructions"
+				print "log\t\t-view the log of completed tasks"
+				print "minimize\t-minimize homeworker"
+				print "open\t\t-close program, and open log.txt"
+				print "(un)pause\t-stop/start adding time to current task"
+				print "switch\t\t-switch to a different task"
+				print "\nThe time after each task corresponds to the amount\nof time it has been actively worked on.\n"
 
 			elif command in "add" and command[0] == "a":
 				print "Enter New Line:"
@@ -139,7 +139,17 @@ def main():
 				else:
 					print "Task name must not be empty."
 
-			elif command in "current" and command[:2] == "cu":
+			elif command in "open" and command[0] == "o":
+				try:
+					f.close()
+					time.sleep(DELAY)
+					os.system(OPEN_COMMAND)
+					return
+				except:
+					print "Could not open log.txt"
+
+
+			elif (command in "current" and command[:2] == "cu") or command == "ls":
 				if len(currentTasks):
 					print "Your current tasks are:"
 					print '\n'.join(currentTasks)
@@ -179,7 +189,7 @@ def main():
 			elif command in "clear" and command[:2] == "cl":
 				os.system(CLEAR_COMMAND)
 
-			elif command in "switch" and command[0] == "s":
+			elif (command in "switch" and command[0] == "s") or command == "cd":
 				itemNum = 1
 				for item in currentTasks:
 					print str(itemNum) + ": " + item
