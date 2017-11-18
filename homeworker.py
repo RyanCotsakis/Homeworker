@@ -10,7 +10,7 @@ from datetime import date
 
 paused = False
 listener_died = False
-tracking_today = True
+tracking_today = False
 
 commands = []
 current_tasks = []
@@ -20,10 +20,12 @@ days = []
 DELAY = 0.1  # seconds per cycle (2*DELAY < WAIT)
 WAIT = 0.2  # seconds for >>
 
+PAUSED_HEADER = "PAUSED:"
+TRACKING_HEADER = "TODAY:"
 CURRENT_HEADER = "CURRENT TASKS:"
 COMPLETED_HEADER = "COMPLETED TASKS:"
 DAYS_HEADER = "TIME PER DAY:"
-DAYS_SEPARATOR = " - "
+DAYS_SEPARATOR = "\t"
 DATE_FORMAT = '%d.%m.%Y'
 
 CLEAR_COMMAND = "cls"
@@ -54,7 +56,8 @@ def listener():
 
 
 def update(_file):
-    data = [CURRENT_HEADER] + current_tasks + [COMPLETED_HEADER] + completed_tasks + [DAYS_HEADER] + days
+    data = [PAUSED_HEADER + ' ' + str(1*paused)] + [TRACKING_HEADER + ' ' + str(1*tracking_today)] + [CURRENT_HEADER] \
+           + current_tasks + [COMPLETED_HEADER] + completed_tasks + [DAYS_HEADER] + days
     _file.seek(0)
     _file.write('\n'.join(data))
     _file.truncate()
@@ -87,10 +90,18 @@ def main():
         f = open("./log.txt", mode="w")
         data = update(f)
 
+    # Extract Info from the file
     stage = 0
     for item in data:
-        if item == CURRENT_HEADER and stage == 0:
-            stage += 1
+        if stage == 0:  # preset P and T
+            if item == CURRENT_HEADER:
+                stage += 1
+            else:
+                item = item.split(' ')
+                if item[0] == PAUSED_HEADER:
+                    paused = int(item[1])
+                elif item[0] == TRACKING_HEADER:
+                    tracking_today = int(item[1])
         elif stage == 1:  # current tasks
             if item == COMPLETED_HEADER:
                 stage += 1
@@ -110,11 +121,12 @@ def main():
     p = threading.Thread(target=listener)
     p.start()
 
-    cycle_count = 0
+    cycle_count = 1
     while True:
         if not paused:
             cycle_count += 1
 
+        # This is the only way to quit the program. Must do it from listener
         if listener_died:
             if len(commands):
                 command = commands[0]
@@ -125,6 +137,7 @@ def main():
                     return
             break
 
+        # Every minute, add time, and auto-save
         if not cycle_count % (60 / DELAY):
             if len(current_tasks):
                     current_task = current_tasks[0].split('\t')
@@ -146,6 +159,7 @@ def main():
 
             data = update(f)
 
+        # Handle next command
         if len(commands):
             command = commands[0]
             del commands[0]
@@ -205,7 +219,6 @@ def main():
                             current_tasks.insert(index-1, new_line)
                         else:
                             current_tasks.append(new_line)
-                        data = update(f)
                         print "Task added!"
                     elif not listener_died:
                         print "Task name must not be empty."
@@ -224,7 +237,6 @@ def main():
                     finished_task = current_tasks[0]
                     del current_tasks[0]
                     completed_tasks.append(date.today().strftime(DATE_FORMAT + DAYS_SEPARATOR) + finished_task)
-                    data = update(f)
                     print "Well done!"
                 except IndexError:
                     print "Done what?"
@@ -242,7 +254,6 @@ def main():
                 try:
                     item_num = int(commands[0]) - 1
                     del current_tasks[item_num]
-                    data = update(f)
                     print "Task Deleted."
                     del commands[0]
                 except (ValueError, IndexError):
@@ -266,7 +277,6 @@ def main():
                     current_task = current_tasks[item_num]
                     del current_tasks[item_num]
                     current_tasks.insert(0, current_task)
-                    data = update(f)
                     print "Successfully switched to task " + str(item_num + 1) + "."
                     del commands[0]
                 except (ValueError, IndexError):
@@ -287,7 +297,6 @@ def main():
                     current_task = completed_tasks[item_num]
                     del completed_tasks[item_num]
                     current_tasks.insert(0, current_task)
-                    data = update(f)
                     print "Successfully switched to task " + str(item_num + 1) + "."
                     del commands[0]
                 except (ValueError, IndexError):
@@ -295,6 +304,8 @@ def main():
 
             else:
                 print "Invalid command, '" + command + "'."
+
+            data = update(f)
 
         sys.stdout.flush()
         time.sleep(DELAY)
