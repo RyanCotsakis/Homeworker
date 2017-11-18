@@ -210,7 +210,7 @@ def main():
                 return
 
             elif (command in "current" and command[:2] == "cu") or command == "ls":
-                if tracking_today:
+                if tracking_today and len(days):
                     print days[-1]
                 if len(current_tasks):
                     print "Your current tasks are:"
