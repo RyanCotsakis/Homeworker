@@ -116,6 +116,13 @@ def main():
             cycle_count += 1
 
         if listener_died:
+            if len(commands):
+                command = commands[0]
+                if command in "open" and command[0] == "o":
+                    f.close()
+                    time.sleep(DELAY)
+                    os.system(OPEN_COMMAND)
+                    return
             break
 
         if not cycle_count % (60 / DELAY):
@@ -169,10 +176,10 @@ def main():
                 print "log\t\t-view the log of completed tasks"
                 print "minimize\t-minimize homeworker"
                 print "open\t\t-close program, and open log.txt"
-                print "(un)pause\t-stop/start adding time to current task (P)"
-                print "today\t\t-toggle the option to track the day (T)"
+                print "(un)pause\t-stop/start adding time to current task    (P)"
+                print "today\t\t-toggle the option to track the time today (T)"
                 print "switch\t\t-switch to a different task"
-                print "\nThe time after each task corresponds to the amount\nof time it has been actively worked on.\n"
+                print "\nThe time after each task corresponds to the amount of time it\nhas been actively worked on.\n"
 
             elif (command in "today" and command[0] == "t") or command == "T":
                 tracking_today = not tracking_today
@@ -202,12 +209,6 @@ def main():
                         print "Task added!"
                     elif not listener_died:
                         print "Task name must not be empty."
-
-            elif command in "open" and command[0] == "o":
-                f.close()
-                time.sleep(DELAY)
-                os.system(OPEN_COMMAND)
-                return
 
             elif (command in "current" and command[:2] == "cu") or command == "ls":
                 if tracking_today and len(days):
