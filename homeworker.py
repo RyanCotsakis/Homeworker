@@ -56,8 +56,8 @@ def listener():
 
 
 def update(_file):
-    data = [PAUSED_HEADER + ' ' + str(1*paused)] + [TRACKING_HEADER + ' ' + str(1*tracking_today)] + [CURRENT_HEADER] \
-           + current_tasks + [COMPLETED_HEADER] + completed_tasks + [DAYS_HEADER] + days
+    data = ([PAUSED_HEADER + ' ' + str(1*paused)] + [TRACKING_HEADER + ' ' + str(1*tracking_today)] + [CURRENT_HEADER] +
+            current_tasks + [COMPLETED_HEADER] + completed_tasks + [DAYS_HEADER] + days)
     _file.seek(0)
     _file.write('\n'.join(data))
     _file.truncate()
@@ -138,10 +138,11 @@ def main():
             break
 
         # Every minute, add time, and auto-save
-        if not cycle_count % (60 / DELAY):
+        if not (cycle_count % (60 / DELAY) or paused):
             if len(current_tasks):
-                    current_task = current_tasks[0].split('\t')
-                    current_tasks[0] = '\t'.join(current_task[:-1]) + '\t' + add_minute(current_task[-1])
+                current_task = current_tasks[0].split(DAYS_SEPARATOR)
+                current_tasks[0] = (DAYS_SEPARATOR.join(current_task[:-1]) +
+                                    DAYS_SEPARATOR + add_minute(current_task[-1]))
 
             if tracking_today:
                 today, today_index = None, None
@@ -213,7 +214,7 @@ def main():
                         time.sleep(DELAY)
                         sys.stdout.flush()
                     if len(commands[0]) and not listener_died:
-                        new_line = commands[0] + "\t0:00"
+                        new_line = commands[0] + DAYS_SEPARATOR + "0:00"
                         del commands[0]
                         if index is not None:
                             current_tasks.insert(index-1, new_line)
@@ -294,7 +295,8 @@ def main():
                     sys.stdout.flush()
                 try:
                     item_num = int(commands[0]) - 1
-                    current_task = completed_tasks[item_num]
+                    selected_task = completed_tasks[item_num].split(DAYS_SEPARATOR)
+                    current_task = DAYS_SEPARATOR.join(selected_task[1:])
                     del completed_tasks[item_num]
                     current_tasks.insert(0, current_task)
                     print "Successfully switched to task " + str(item_num + 1) + "."
